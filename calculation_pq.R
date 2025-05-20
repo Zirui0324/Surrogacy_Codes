@@ -18,7 +18,7 @@ calculation_pq <- function(NuisanceFit, TargetFit, gamma) {
   c1_pred=NuisanceFit$c1_pred
   d0_pred=NuisanceFit$d0_pred
   d1_pred=NuisanceFit$d1_pred
-  alpha_k = cbind(X0 = 1, Xnew) %*% gamma
+  alpha_k = exp(cbind(X0 = 1, Xnew) %*% gamma)
   
   Xt = TargetFit$Xt
   m0_t=TargetFit$m0_t
@@ -31,7 +31,7 @@ calculation_pq <- function(NuisanceFit, TargetFit, gamma) {
   c1_t=TargetFit$c1_t
   d0_t=TargetFit$d0_t
   d1_t=TargetFit$d1_t
-  alpha_t = cbind(X0 = 1, Xt) %*% gamma
+  alpha_t = exp(cbind(X0 = 1, Xt) %*% gamma)
   
   dims <- ncol(TargetFit$r0_t)
   

@@ -17,7 +17,7 @@ Vab = function(NuisanceFit, TargetFit) {
   c1_pred=NuisanceFit$c1_pred
   d0_pred=NuisanceFit$d0_pred
   d1_pred=NuisanceFit$d1_pred
-  alpha_k = cbind(X0 = 1, Xnew) %*% gamma
+  alpha_k = exp(cbind(X0 = 1, Xnew) %*% gamma)
   
   Xt = TargetFit$Xt
   m0_t=TargetFit$m0_t
@@ -30,7 +30,7 @@ Vab = function(NuisanceFit, TargetFit) {
   c1_t=TargetFit$c1_t
   d0_t=TargetFit$d0_t
   d1_t=TargetFit$d1_t
-  alpha_t = cbind(X0 = 1, Xt) %*% gamma
+  alpha_t = exp(cbind(X0 = 1, Xt) %*% gamma)
   
   # when gamma=0, 1/alpha = Inf
   
@@ -114,7 +114,8 @@ Vab = function(NuisanceFit, TargetFit) {
   V <- B1 - 2*C1 %*% beta_opt +  t(D1 %*% beta_opt) %*% beta_opt - M1^2 + 2*M1*t(R1) %*% beta_opt - (t(R1) %*% beta_opt)^2 +
     B0 - 2*C0 %*% beta_opt +  t(D0 %*% beta_opt) %*% beta_opt - M0^2 + 2*M0*t(R0) %*% beta_opt - (t(R0) %*% beta_opt)^2 +
     2*M1*M0 - 2*M1*t(R0) %*% beta_opt - 2*M0*t(R1) %*% beta_opt + 2*(R1 %*% beta_opt)*(R0 %*% beta_opt) +
-    (-2)*(
+    #------------------------------------------------- conditional -------------------------------------------------#
+    (-2)*( # m1m0 - m1r0 - m0r1(beta) + (beta)r1r0(beta)
       mean(m1m0_target) + m1m0_source - 
         (colMeans(m1r0_target) + m1r0_source) %*% beta_opt -
         (colMeans(m0r1_target) + m0r1_source) %*% beta_opt +

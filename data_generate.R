@@ -41,7 +41,7 @@ EY0 <- function(X, S0) {
 EY1 <- function(X, S1) {
   #beta_s1 <- c(0.5, -0.5)
   beta_s1 <- c(1, -1)
-  EY1 <- S1 %*% beta_s1 + 0.2*X[, 3] # + X[,2]*X[, 3] + X[,1]*X[, 2] + X[,1]^2 + 5*X[, 3]
+  EY1 <- S1 %*% beta_s1 #+ 0.2*X[, 3] # + X[,2]*X[, 3] + X[,1]*X[, 2] + X[,1]^2 + 5*X[, 3]
   EY1
 }
 
@@ -59,7 +59,9 @@ GD <- function(n){
   Xa <- data.frame(X1 = rnorm(l*2*n, 0, 0.5),
                    X2 = rnorm(l*2*n, 0, 1),
                    X3 = runif(l*2*n, min = -1, max = 1)) |> 
-    mutate(p1 = expit(X1 + X2 + X3)) # almost symmetric around 0
+    mutate(p1 = rbinom(l*2*n, 1, 0.5)
+           #p1 = expit(X1 + X2 + X3)
+           ) # almost symmetric around 0
   Xa$t <- rbinom(n = length(Xa$p1), size = 1, prob = Xa$p1)
   
   X <- Xa |> filter(t == 0) |> slice(1:n) |> select(X1, X2, X3) |> as.matrix()
@@ -73,8 +75,8 @@ GD <- function(n){
   S1 <- ES1(X) + e_S1
   
   #Y: n x 1 matrix
-  e_Y0 <- err(n, 1, 0.5)
-  e_Y1 <- err(n, 1, 0.5)
+  e_Y0 <- err(n, 1, 0) # 0.5
+  e_Y1 <- err(n, 1, 0) # 0.5
   Y0 <- EY0(X, S0) + e_Y0
   Y1 <- EY1(X, S1) + e_Y1
   

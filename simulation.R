@@ -23,7 +23,7 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     Index <- Split2(K, n) # sample split
     dimS <- ncol(DP$S0) # dim(theta) = dim(S)
     dimX <- 3
-    gamma0 <- matrix(1e-6, dimX+1, 1) # gamma = (000) would case error
+    gamma0 <- matrix(0, dimX+1, 1) # gamma = (000) would cause error
     
     # array for storing B, C, D from the K folds
     NuisanceFit_folds <- vector("list", K)
@@ -83,7 +83,7 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     
     ###----------------------------------------- Iteration -----------------------------------------###
     
-    tol        <- 0.1 # adjust later
+    tol        <- 0.01 # adjust later
     max_iter   <- 100
     prev_avg_V <- Inf
     gamma      <- gamma0 
