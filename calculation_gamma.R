@@ -95,7 +95,7 @@ new_gamma <- function(NuisanceFit, TargetFit, gamma, beta_opt) {
        t((b1_source*Xnew_i)[Anew == 1,,drop = FALSE])%*%(Xnew_i[Anew == 1,,drop = FALSE]) / nrow(Xnew_i[Anew == 1,,drop = FALSE])
     ) + # source
     # b0:
-    -(t((b0_target*Xt_i)) %*% Xt_i / nrow(Xt_i) + 
+    (t((b0_target*Xt_i)) %*% Xt_i / nrow(Xt_i) + 
         t((b0_source*Xnew_i)[Anew == 0,,drop = FALSE])%*%(Xnew_i[Anew == 0,,drop = FALSE]) / nrow(Xnew_i[Anew == 0,,drop = FALSE])
     ) +
     # c1:
@@ -104,7 +104,7 @@ new_gamma <- function(NuisanceFit, TargetFit, gamma, beta_opt) {
         t((c1_source*Xnew_i)[Anew == 1,,drop = FALSE])%*%(Xnew_i[Anew == 1,,drop = FALSE]) / nrow(Xnew_i[Anew == 1,,drop = FALSE])
     ) +
     # c0:
-    2*(
+    (-2)*(
       t((c0_target*Xt_i)) %*% Xt_i / nrow(Xt_i) + 
         t((c0_source*Xnew_i)[Anew == 0,,drop = FALSE])%*%(Xnew_i[Anew == 0,,drop = FALSE]) / nrow(Xnew_i[Anew == 0,,drop = FALSE])
     ) + 
@@ -113,7 +113,7 @@ new_gamma <- function(NuisanceFit, TargetFit, gamma, beta_opt) {
        t((d1_source*Xnew_i)[Anew == 1,,drop = FALSE])%*%(Xnew_i[Anew == 1,,drop = FALSE]) / nrow(Xnew_i[Anew == 1,,drop = FALSE])
     ) +
     # d0:
-    -(t((d0_target*Xt_i)) %*% Xt_i / nrow(Xt_i) + 
+    (t((d0_target*Xt_i)) %*% Xt_i / nrow(Xt_i) + 
         t((d0_source*Xnew_i)[Anew == 0,,drop = FALSE])%*%(Xnew_i[Anew == 0,,drop = FALSE]) / nrow(Xnew_i[Anew == 0,,drop = FALSE])
     )
   
