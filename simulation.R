@@ -23,7 +23,7 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     Index <- Split2(K, n) # sample split
     dimS <- ncol(DP$S0) # dim(theta) = dim(S)
     dimX <- 3
-    gamma0 <- matrix(0, dimX+1, 1) # gamma = (000) would cause error
+    gamma0 <- matrix(0, dimX+1, 1)
     
     # array for storing B, C, D from the K folds
     NuisanceFit_folds <- vector("list", K)
@@ -34,6 +34,8 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     gamma_i <- matrix(NA, nrow=dimS, ncol=K)
     ha_folds <- array(NA, dim = c(dimX+1, dimX+1, K))
     xi_folds <- matrix(NA, nrow=dimX+1, ncol=K)
+    tau_numr <- numeric(K)
+    tau_denom <- numeric(K)
     #B_boo_folds <- array(NA, dim = c(dimS, NBoot, K))
     #C_boo_folds <- array(NA, dim = c(dimS, dimS, NBoot, K))
     #D_boo_folds <- array(NA, dim = c(NBoot, K))
@@ -87,6 +89,7 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     max_iter   <- 100
     prev_avg_V <- Inf
     gamma      <- gamma0 
+    step_size <- 1 # set at = 0.1/0.2 for gradient update
     
     for (iter in 1:max_iter) {
       
@@ -113,12 +116,8 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
       avg_xi   <- rowMeans(xi_folds, na.rm = TRUE)
       gamma_new <- gamma - solve(avg_ha) %*% avg_xi
       
-      cat(sprintf("iter %d : avg_V = %.5f  |ΔV| = %.5f\n",
-                  iter, avg_V, abs(avg_V - prev_avg_V)))
-      
-      
       if (abs(avg_V - prev_avg_V) < tol) {
-        message("Converged!")
+        #message("Converged!")
         break
       }
       
@@ -126,6 +125,13 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
       prev_avg_V <- avg_V
       gamma      <- gamma_new
     }
-
     
+    for (j in 1:K){
+      tau_numr[j] <- tau(NuisanceFit_folds[[j]], TargetFit_folds[[j]], beta_opt)$numr
+      tau_denom[j] <- tau(NuisanceFit_folds[[j]], TargetFit_folds[[j]], beta_opt)$denom
+    }
+    
+    tau <- 1-mean(tau_numr)/mean(tau_denom)
+
+    print(tau)
 }}

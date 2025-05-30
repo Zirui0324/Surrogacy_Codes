@@ -83,6 +83,17 @@ tau <- function(NuisanceFit, TargetFit, beta_opt) {
   m1m0_target <- m1_t*m0_t
   m1m0_source <- mean((omega*(Y1new-m1_pred)*m0_pred)[Anew == 1,,drop = FALSE]) + mean((omega*(Y0new-m0_pred)*m1_pred)[Anew == 0,,drop = FALSE])
   
+  m1r0_target <- r0_t*as.vector(m1_t)
+  m1r0_source <- colMeans((omega*r0_pred*as.vector(Y1new-m1_pred))[Anew == 1,,drop = FALSE]) + colMeans((omega*(S0new-r0_pred)*as.vector(m1_pred))[Anew == 0,,drop = FALSE])
+  m0r1_target <- r1_t*as.vector(m0_t)
+  m0r1_source <- colMeans((omega*r1_pred*as.vector(Y0new-m0_pred))[Anew == 0,,drop = FALSE]) + colMeans((omega*(S1new-r1_pred)*as.vector(m0_pred))[Anew == 1,,drop = FALSE])
+  
+  r1r0_target <- t(sapply(seq_len(nrow(r1_t)), function(i) {as.vector(outer(r1_t[i, ], r0_t[i, ]))}))
+  r1r0_source <- colMeans((omega*t(sapply(seq_len(nrow(S1new)), function(i)
+  {as.vector(outer((S1new-r1_pred)[i,], r0_pred[i,]))})))[Anew == 1,,drop = FALSE]) + 
+    colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i) 
+    {as.vector(outer(r1_pred[i,], (S0new-r0_pred)[i,]))})))[Anew == 0,,drop = FALSE])
+      
   var_e_target <- sqrt(var_1_t*var_0_t)
   var_e_source_0 <- omega*sqrt(var_1/var_0)*((Y0new - S0new %*% beta_opt - m0_pred + r0_pred %*% beta_opt)^2 - var_0)
   var_e_source_1 <- omega*sqrt(var_0/var_1)*((Y1new - S1new %*% beta_opt - m1_pred + r1_pred %*% beta_opt)^2 - var_1)
