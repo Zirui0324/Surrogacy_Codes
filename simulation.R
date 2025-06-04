@@ -6,132 +6,54 @@ library(kernlab)
 
 N=1000
 n=1000
+sample_sizes = c(n)
 K=5
 givenestimator = 'glm' # c('glm', 'svmLinear2', 'rf', 'nnet)
+NBoot=100
 
-sim_function <- function(N, n, K, givenestimator, NBoot) {
+
+result <- list()
+
+for (n in sample_sizes) {
   
-  # haven't run this function for simulation, could just use the codes in: for (i in 1:N) {......}
-  # specify outputs here
-  # specify outputs here
-  # specify outputs here
-  # specify outputs here
-
+  result[[as.character(n)]] <- data.frame()
+  
   for (i in 1:N) {
+    set.seed(200427 + i)
+    # N=1 inside sim_function so that each call returns one replication
+    result <- sim_function(1, n, K, givenestimator, NBoot)
     
-    DP <- GD(n) 
-    Index <- Split2(K, n) # sample split
-    dimS <- ncol(DP$S0) # dim(theta) = dim(S)
-    dimX <- 3
-    gamma0 <- matrix(0, dimX+1, 1)
+    # result$theta[[1]] is a vector of length 2
+    tau       <- result$tau
+    tau_se   <- result$se_tau
+    beta      <- as.vector(result$beta)
+    gamma     <- as.vector(result$gamma)
     
-    # array for storing B, C, D from the K folds
-    NuisanceFit_folds <- vector("list", K)
-    TargetFit_folds   <- vector("list", K)
-    P_hat_folds <- array(NA, dim = c(dimS, dimS, K))
-    Q_hat_folds <- matrix(NA, nrow=dimS, ncol=K)
-    V <- numeric(K)
-    gamma_i <- matrix(NA, nrow=dimS, ncol=K)
-    ha_folds <- array(NA, dim = c(dimX+1, dimX+1, K))
-    xi_folds <- matrix(NA, nrow=dimX+1, ncol=K)
-    tau_numr <- numeric(K)
-    tau_denom <- numeric(K)
-    #B_boo_folds <- array(NA, dim = c(dimS, NBoot, K))
-    #C_boo_folds <- array(NA, dim = c(dimS, dimS, NBoot, K))
-    #D_boo_folds <- array(NA, dim = c(NBoot, K))
+    df <- data.frame(
+      replicate = i,
+      
+      tau = tau,
+      tau_se = tau_se,
+      beta1 = beta[1],
+      beta2 = beta[2],
+      gamma1 = gamma[1],
+      gamma2 = gamma[2],
+      gamma3 = gamma[3],
+      gamma4 = gamma[4]
+    )
     
-    for (j in 1:K){
-      
-      idNj = (Index!=j) # for training, (1-1/K)*n dp
-      idj = (Index==j) # for estimation, (1/K)*n dp
-      
-      # training set
-      In <- lapply(DP, function(component) {
-        if (is.matrix(component)) {
-          component[idNj, , drop = FALSE]
-        } else {
-          component[idNj]
-        }})
-      
-      # estimation set
-      Out <- lapply(DP, function(component) {
-        if (is.matrix(component)) {
-          component[idj, , drop = FALSE]
-        } else {
-          component[idj]
-        }})
-      
-      # target set
-      Target <- DP$Xt
-      
-      # estimation
-      result_j <- tryCatch(
-        estimate(In, Out, Target, givenestimator, NBoot),
-        error = function(e) {
-          list(
-            NuisanceFit = list(),
-            TargetFit = list()
-            # se_theta= rep(NaN, dimS),
-            # se_tau  = NaN
-          )
-        }
-      )
-      
-      # point estimate:
-      NuisanceFit_folds[[j]]  <- result_j$NuisanceFit
-      TargetFit_folds[[j]]    <- result_j$TargetFit
-      
-    }
+    # append the result for this replication
+    result[[as.character(n)]] <- rbind(result[[as.character(n)]], df)
     
-    ###----------------------------------------- Iteration -----------------------------------------###
+    csv_filename <- paste0(
+      givenestimator, "_",        
+      n, "_",                    
+      Sys.Date(),                
+      ".csv"
+    )
     
-    tol        <- 0.01 # adjust later
-    max_iter   <- 100
-    prev_avg_V <- Inf
-    gamma      <- gamma0 
-    step_size <- 1 # set at = 0.1/0.2 for gradient update
-    
-    for (iter in 1:max_iter) {
-      
-      # P, Q:
-      for (j in 1:K) {
-        P_hat_folds[,,j]  <- calculation_pq(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma)$P # can also move out
-        Q_hat_folds[,j]   <- calculation_pq(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma)$Q
-      }
-      
-      # Beta: (average P, Q over folds)
-      avg_P    <- apply(P_hat_folds, c(1, 2), mean, na.rm = TRUE)
-      avg_Q    <- rowMeans(Q_hat_folds, na.rm = TRUE)
-      beta_opt <- solve(avg_P) %*% avg_Q
-      
-      # V, ha, xi:
-      for (j in 1:K){
-        V[j] <- Vab(NuisanceFit_folds[[j]], TargetFit_folds[[j]])
-        ha_folds[,,j] <- new_gamma(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)$ha
-        xi_folds[,j]  <- new_gamma(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)$xi
-      }
-      
-      avg_V <- mean(V) # evaluate the convergence of avg_V
-      avg_ha   <- apply(ha_folds, c(1, 2), mean, na.rm = TRUE)
-      avg_xi   <- rowMeans(xi_folds, na.rm = TRUE)
-      gamma_new <- gamma - solve(avg_ha) %*% avg_xi
-      
-      if (abs(avg_V - prev_avg_V) < tol) {
-        #message("Converged!")
-        break
-      }
-      
-      ## update for next iteration
-      prev_avg_V <- avg_V
-      gamma      <- gamma_new
-    }
-    
-    for (j in 1:K){
-      tau_numr[j] <- tau(NuisanceFit_folds[[j]], TargetFit_folds[[j]], beta_opt)$numr
-      tau_denom[j] <- tau(NuisanceFit_folds[[j]], TargetFit_folds[[j]], beta_opt)$denom
-    }
-    
-    tau <- 1-mean(tau_numr)/mean(tau_denom)
-
-    print(tau)
-}}
+    write.csv(result[[as.character(n)]], # save csv after each loop
+              file = file.path("./output", csv_filename), 
+              row.names = FALSE)
+  }
+}
