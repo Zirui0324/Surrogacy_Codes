@@ -1,34 +1,19 @@
 
-sim_function <- function(N, n, K, givenestimator, NBoot) {
-  
-  # haven't run this function for simulation, could just use the codes in: for (i in 1:N) {......}
-  # specify outputs here
-  # specify outputs here
-  # specify outputs here
-  # specify outputs here
-
-  for (i in 1:N) {
+sim_function <- function(n, K, givenestimator, NBoot) {
     
     DP <- GD(n) 
     Index <- Split2(K, n) # sample split
     dimS <- ncol(DP$S0) # dim(theta) = dim(S)
-    dimX <- 3
-    gamma0 <- matrix(0, dimX+1, 1)
     
-    # array for storing B, C, D from the K folds
     NuisanceFit_folds <- vector("list", K)
     TargetFit_folds   <- vector("list", K)
-    P_hat_folds <- array(NA, dim = c(dimS, dimS, K))
-    Q_hat_folds <- matrix(NA, nrow=dimS, ncol=K)
-    V <- numeric(K)
-    gamma_i <- matrix(NA, nrow=dimS, ncol=K)
-    ha_folds <- array(NA, dim = c(dimX+1, dimX+1, K))
-    xi_folds <- matrix(NA, nrow=dimX+1, ncol=K)
-    tau_numr <- numeric(K)
-    tau_denom <- numeric(K)
-    #B_boo_folds <- array(NA, dim = c(dimS, NBoot, K))
-    #C_boo_folds <- array(NA, dim = c(dimS, dimS, NBoot, K))
-    #D_boo_folds <- array(NA, dim = c(NBoot, K))
+    # Bootstrap storage:
+    NuisanceBoot_folds <- lapply(seq_len(NBoot), function(...) vector("list", K))
+    TargetBoot_folds <- lapply(seq_len(NBoot), function(...) vector("list", K))
+    tau_boot = numeric(NBoot)
+    
+    dimS = 2
+    dimX = 3
     
     ###----------------------------------------- Nuisance Estimate -----------------------------------------###
     for (j in 1:K){
@@ -77,7 +62,13 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
     ###----------------------------------------- Iteration -----------------------------------------###
     
     # true tau:
-    tau = iteration(NuisanceFit_folds, TargetFit_folds)
+  
+    tau = iteration(NuisanceFit_folds, TargetFit_folds)$tau
+    beta_opt = iteration(NuisanceFit_folds, TargetFit_folds)$beta_opt
+    gamma = iteration(NuisanceFit_folds, TargetFit_folds)$gamma
+    
+    message(sprintf("[%s]  true_tau obtained — start bootstrapping",
+                    format(Sys.time(), "%m‑%d %H:%M")))
     
     # se(tau) through bootstrapping:
     for (i in 1:NBoot) {
@@ -87,11 +78,14 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
         TargetBoot_folds[[i]][[j]] = resample_data(NuisanceFit_folds[[j]], TargetFit_folds[[j]])$TargetBoot
       }
       
-      tau_boot[i] = iteration(NuisanceBoot_folds[[i]], TargetBoot_folds[[i]])
+      tau_boot[i] <- tryCatch( # store as NA if errors occur (doesn't converge/haissen)
+        iteration(NuisanceBoot_folds[[i]], TargetBoot_folds[[i]])$tau,
+        error = function(e) NA_real_ 
+      )
       
     }
     
-    se_tau = sd(tau_boot)
+    se_tau <- sd(tau_boot[is.finite(tau_boot)], na.rm = TRUE)
     
     ###----------------------------------------- Output -----------------------------------------###
     
@@ -101,4 +95,4 @@ sim_function <- function(N, n, K, givenestimator, NBoot) {
       beta = beta_opt,
       gamma = gamma
     ))
-}}
+}

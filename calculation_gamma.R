@@ -1,6 +1,4 @@
 
-dimX <- 3
-
 new_gamma <- function(NuisanceFit, TargetFit, gamma, beta_opt) {
   
   Xnew=NuisanceFit$Xnew

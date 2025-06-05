@@ -13,7 +13,7 @@ NBoot=100
 dimX = 3
 gamma0 = matrix(0, dimX+1, 1)
 
-
+# -------------------------------------------- Simulation -------------------------------------------- #
 output <- list()
 
 for (n in sample_sizes) {
@@ -47,6 +47,7 @@ for (n in sample_sizes) {
       gamma4 = gamma[4]
     )
     
+    
     # append the result for this replication
     output[[as.character(n)]] <- rbind(output[[as.character(n)]], df)
     
@@ -60,5 +61,19 @@ for (n in sample_sizes) {
     write.csv(output[[as.character(n)]],
               file = file.path("./output", csv_filename), 
               row.names = FALSE)
+    
+    message(sprintf("[%s] iteration %d done — beginning iteration %d",
+                    format(Sys.time(), "%m‑%d %H:%M"),  # timestamp to the minute
+                    i, i + 1))
   }
 }
+
+# -------------------------------------------- Output Organization -------------------------------------------- #
+output_raw = read_csv("./output/glm_1000_2025-06-05.csv")
+
+
+
+
+
+
+

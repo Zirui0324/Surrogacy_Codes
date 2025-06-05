@@ -1,4 +1,8 @@
-tau <- function(NuisanceFit, TargetFit, beta_opt) {
+Tau <- function(NuisanceFit, TargetFit, beta_opt) {
+  
+  Mean <- function(x) {
+    mean(x[is.finite(x)])
+  }
   
   dims <- ncol(TargetFit$r0_t)
   
@@ -81,7 +85,7 @@ tau <- function(NuisanceFit, TargetFit, beta_opt) {
   
   # conditional debiased:
   m1m0_target <- m1_t*m0_t
-  m1m0_source <- mean((omega*(Y1new-m1_pred)*m0_pred)[Anew == 1,,drop = FALSE]) + mean((omega*(Y0new-m0_pred)*m1_pred)[Anew == 0,,drop = FALSE])
+  m1m0_source <- mean((omega*(Y1new-m1_pred)*m0_pred)[Anew == 1,drop = FALSE]) + mean((omega*(Y0new-m0_pred)*m1_pred)[Anew == 0,drop = FALSE])
   
   m1r0_target <- r0_t*as.vector(m1_t)
   m1r0_source <- colMeans((omega*r0_pred*as.vector(Y1new-m1_pred))[Anew == 1,,drop = FALSE]) + colMeans((omega*(S0new-r0_pred)*as.vector(m1_pred))[Anew == 0,,drop = FALSE])
@@ -115,9 +119,9 @@ tau <- function(NuisanceFit, TargetFit, beta_opt) {
         ) %*% beta_opt) %*% beta_opt
     ) +
     2*(
-      mean(var_e_target) +
-        0.5*(mean(var_e_source_0[Anew == 0,drop = FALSE])) +
-        0.5*(mean(var_e_source_1[Anew == 1,drop = FALSE]))
+      Mean(var_e_target) +
+        0.5*(Mean(var_e_source_0[Anew == 0,drop = FALSE])) +
+        0.5*(Mean(var_e_source_1[Anew == 1,drop = FALSE]))
     )
   
   denom <- B1 - M1^2 + B0 - M0^2 + 2*M1*M0 +
@@ -125,9 +129,9 @@ tau <- function(NuisanceFit, TargetFit, beta_opt) {
     (-2)*(mean(m1m0_target) + m1m0_source) +
     # -2*√√
     (-2)*(
-      mean(var_target) +
-        0.5*mean(var_source_0[Anew == 0,drop = FALSE]) + # drop NaN and Inf
-        0.5*mean(var_source_1[Anew == 1,drop = FALSE])
+      Mean(var_target) +
+        0.5*Mean(var_source_0[Anew == 0,drop = FALSE]) + # drop NaN and Inf
+        0.5*Mean(var_source_1[Anew == 1,drop = FALSE])
     )
   
   list(
