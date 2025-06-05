@@ -10,22 +10,27 @@ sample_sizes = c(n)
 K=5
 givenestimator = 'glm' # c('glm', 'svmLinear2', 'rf', 'nnet)
 NBoot=100
+dimX = 3
+gamma0 = matrix(0, dimX+1, 1)
 
 
-result <- list()
+output <- list()
 
 for (n in sample_sizes) {
   
-  result[[as.character(n)]] <- data.frame()
+  output[[as.character(n)]] <- data.frame()
   
   for (i in 1:N) {
+    
     set.seed(200427 + i)
-    # N=1 inside sim_function so that each call returns one replication
-    result <- sim_function(1, n, K, givenestimator, NBoot)
+    tol        <- 0.0001
+    max_iter   <- 100
+    step_size  <- 1 # set at = 0.1/0.2 for gradient update
+    result <- sim_function(n, K, givenestimator, NBoot)
     
     # result$theta[[1]] is a vector of length 2
     tau       <- result$tau
-    tau_se   <- result$se_tau
+    tau_se    <- result$se_tau
     beta      <- as.vector(result$beta)
     gamma     <- as.vector(result$gamma)
     
@@ -43,7 +48,7 @@ for (n in sample_sizes) {
     )
     
     # append the result for this replication
-    result[[as.character(n)]] <- rbind(result[[as.character(n)]], df)
+    output[[as.character(n)]] <- rbind(output[[as.character(n)]], df)
     
     csv_filename <- paste0(
       givenestimator, "_",        
@@ -52,7 +57,7 @@ for (n in sample_sizes) {
       ".csv"
     )
     
-    write.csv(result[[as.character(n)]], # save csv after each loop
+    write.csv(output[[as.character(n)]],
               file = file.path("./output", csv_filename), 
               row.names = FALSE)
   }

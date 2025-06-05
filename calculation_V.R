@@ -1,4 +1,4 @@
-Vab = function(NuisanceFit, TargetFit) {
+Vab = function(NuisanceFit, TargetFit, gamma, beta_opt) {
   
   Xnew=NuisanceFit$Xnew
   Anew=NuisanceFit$Anew
@@ -17,6 +17,12 @@ Vab = function(NuisanceFit, TargetFit) {
   c1_pred=NuisanceFit$c1_pred
   d0_pred=NuisanceFit$d0_pred
   d1_pred=NuisanceFit$d1_pred
+  b0_pred_e=NuisanceFit$b0_pred_e
+  b1_pred_e=NuisanceFit$b1_pred_e
+  c0_pred_e=NuisanceFit$c0_pred_e
+  c1_pred_e=NuisanceFit$c1_pred_e
+  d0_pred_e=NuisanceFit$d0_pred_e
+  d1_pred_e=NuisanceFit$d1_pred_e
   alpha_k = exp(cbind(X0 = 1, Xnew) %*% gamma)
   
   Xt = TargetFit$Xt
@@ -30,92 +36,78 @@ Vab = function(NuisanceFit, TargetFit) {
   c1_t=TargetFit$c1_t
   d0_t=TargetFit$d0_t
   d1_t=TargetFit$d1_t
+  b0_t_e=TargetFit$b0_t_e
+  b1_t_e=TargetFit$b1_t_e
+  c0_t_e=TargetFit$c0_t_e
+  c1_t_e=TargetFit$c1_t_e
+  d0_t_e=TargetFit$d0_t_e
+  d1_t_e=TargetFit$d1_t_e
   alpha_t = exp(cbind(X0 = 1, Xt) %*% gamma)
-  
-  # when gamma=0, 1/alpha = Inf
   
   dims <- ncol(TargetFit$r0_t)
   
   # unconditional debiased:
+  M0 <- mean(m0_t) + mean(((Y0new - m0_pred)*omega)[Anew == 0,drop = FALSE])
+  M1 <- mean(m1_t) + mean(((Y1new - m1_pred)*omega)[Anew == 1,drop = FALSE])
+  
+  R0 <- colMeans(r0_t) +
+    colMeans(((S0new - r0_pred)*omega)[Anew == 0,,drop = FALSE])
+  R1 <- colMeans(r1_t) +
+    colMeans(((S1new - r1_pred)*omega)[Anew == 1,,drop = FALSE])
+  
+  B0 <- mean(b0_t) + mean((((Y0new)^2-b0_pred)*omega)[Anew == 0,drop = FALSE])
+  B1 <- mean(b1_t) + mean((((Y1new)^2-b1_pred)*omega)[Anew == 1,drop = FALSE])
+  
+  C0 <- colMeans(c0_t) +
+    colMeans(((S0new*as.vector(Y0new) - c0_pred)*omega)[Anew == 0,,drop = FALSE])
+  C1 <- colMeans(c1_t) +
+    colMeans(((S1new*as.vector(Y1new) - c1_pred)*omega)[Anew == 1,,drop = FALSE])
+  
   D0 <- matrix(colMeans(d0_t), nrow = dims, ncol = dims) + # target # D0, D1: stored as p*p matrix; other nuisance as numeric
     matrix(colMeans(((t(apply(S0new, 1, function(v) as.vector(outer(v,v)))) - d0_pred)*omega)[Anew == 0,,drop = FALSE]),
            nrow = dims, ncol = dims) # source k-th fold
   D1 <- matrix(colMeans(d1_t), nrow = dims, ncol = dims) +
     matrix(colMeans(((t(apply(S1new, 1, function(v) as.vector(outer(v,v)))) - d1_pred)*omega)[Anew == 1,,drop = FALSE]),
            nrow = dims, ncol = dims)
-  R0 <- colMeans(r0_t) +
-    colMeans(((S0new - r0_pred)*omega)[Anew == 0,,drop = FALSE])
-  R1 <- colMeans(r1_t) +
-    colMeans(((S1new - r1_pred)*omega)[Anew == 1,,drop = FALSE])
-  C0 <- colMeans(c0_t) +
-    colMeans(((S0new*as.vector(Y0new) - c0_pred)*omega)[Anew == 0,,drop = FALSE])
-  C1 <- colMeans(c1_t) +
-    colMeans(((S1new*as.vector(Y1new) - c1_pred)*omega)[Anew == 1,,drop = FALSE])
-  M0 <- mean(m0_t) + mean(((Y0new - m0_pred)*omega)[Anew == 0,drop = FALSE])
-  M1 <- mean(m1_t) + mean(((Y1new - m1_pred)*omega)[Anew == 1,drop = FALSE])
-  B0 <- mean(b0_t) + mean((((Y0new)^2-b0_pred)*omega)[Anew == 0,drop = FALSE])
-  B1 <- mean(b1_t) + mean((((Y1new)^2-b1_pred)*omega)[Anew == 1,drop = FALSE])
   
   # conditional debiased:
-  ad1_target <- as.vector(alpha_t)*d1_t
-  ad1_source <- (as.vector(alpha_k)*omega*(t(apply(S1new, 1, function(v) as.vector(outer(v,v)))) - d1_pred))
-  ad0_target <- as.vector(1/alpha_t)*d0_t
-  ad0_source <- (as.vector(1/alpha_k)*omega*(t(apply(S0new, 1, function(v) as.vector(outer(v,v)))) - d0_pred))
-  
-  ar1sq_target <- as.vector(alpha_t)*t(apply(r1_t, 1, function(s) as.vector(outer(s,s))))
-  ar1sq_source <- as.vector(alpha_k)*omega*(
-    t(sapply(seq_len(nrow(S1new)), function(i) {as.vector(outer(S1new[i, ]-r1_pred[i, ], r1_pred[i, ]))})) +
-      t(sapply(seq_len(nrow(S1new)), function(i) {as.vector(outer(r1_pred[i, ], S1new[i, ]-r1_pred[i, ]))})))
-  ar0sq_target <- as.vector(1/alpha_t)*t(apply(r0_t, 1, function(s) as.vector(outer(s,s))))
-  ar0sq_source <- as.vector(1/alpha_k)*omega*(
-    t(sapply(seq_len(nrow(S0new)), function(i) {as.vector(outer(S0new[i, ]-r0_pred[i, ], r0_pred[i, ]))})) +
-      t(sapply(seq_len(nrow(S0new)), function(i) {as.vector(outer(r0_pred[i, ], S0new[i, ]-r0_pred[i, ]))})))
-  
-  r1r0_target <- t(sapply(seq_len(nrow(r1_t)), function(i) {as.vector(outer(r1_t[i, ], r0_t[i, ]))}))
-  r1r0_source <- colMeans((omega*t(sapply(seq_len(nrow(S1new)), function(i)
-  {as.vector(outer((S1new-r1_pred)[i,], r0_pred[i,]))})))[Anew == 1,,drop = FALSE]) + 
-    colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i) 
-    {as.vector(outer(r1_pred[i,], (S0new-r0_pred)[i,]))})))[Anew == 0,,drop = FALSE])
-  r0r1_target <- t(sapply(seq_len(nrow(r0_t)), function(i) {as.vector(outer(r0_t[i, ], r1_t[i, ]))}))
-  r0r1_source <- colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i)
-  {as.vector(outer((S0new-r0_pred)[i,], r1_pred[i,]))})))[Anew == 0,,drop = FALSE]) + 
-    colMeans((omega*t(sapply(seq_len(nrow(S1new)), function(i) 
-    {as.vector(outer(r0_pred[i,], (S1new-r1_pred)[i,]))})))[Anew == 1,,drop = FALSE])
-  
-  ac1_target <- as.vector(alpha_t)*c1_t
-  ac1_source <- (as.vector(alpha_k)*omega*(S1new*as.vector(Y1new)-c1_pred))
-  ac0_target <- as.vector(1/alpha_t)*c0_t
-  ac0_source <- as.vector(1/alpha_k)*omega*(S0new*as.vector(Y0new)-c0_pred)
-  
-  am1r1_target <- as.vector(alpha_t)*r1_t*as.vector(m1_t)
-  am1r1_source <- as.vector(alpha_k)*omega*(r1_pred*as.vector(Y1new-m1_pred) + (S1new-r1_pred)*as.vector(m1_pred))
-  am0r0_target <- as.vector(1/alpha_t)*r0_t*as.vector(m0_t)
-  am0r0_source <- as.vector(1/alpha_k)*omega*(r0_pred*as.vector(Y0new-m0_pred) + (S0new-r0_pred)*as.vector(m0_pred))
+  m1m0_target <- m1_t*m0_t
+  m1m0_source <- mean((omega*(Y1new-m1_pred)*m0_pred)[Anew == 1,drop = FALSE]) + mean((omega*(Y0new-m0_pred)*m1_pred)[Anew == 0,drop = FALSE])
   
   m1r0_target <- r0_t*as.vector(m1_t)
   m1r0_source <- colMeans((omega*r0_pred*as.vector(Y1new-m1_pred))[Anew == 1,,drop = FALSE]) + colMeans((omega*(S0new-r0_pred)*as.vector(m1_pred))[Anew == 0,,drop = FALSE])
   m0r1_target <- r1_t*as.vector(m0_t)
   m0r1_source <- colMeans((omega*r1_pred*as.vector(Y0new-m0_pred))[Anew == 0,,drop = FALSE]) + colMeans((omega*(S1new-r1_pred)*as.vector(m0_pred))[Anew == 1,,drop = FALSE])
   
-  m1m0_target <- m1_t*m0_t
-  m1m0_source <- mean((omega*(Y1new-m1_pred)*m0_pred)[Anew == 1,,drop = FALSE]) + mean((omega*(Y0new-m0_pred)*m1_pred)[Anew == 0,,drop = FALSE])
+  r1r0_target <- t(sapply(seq_len(nrow(r1_t)), function(i) {as.vector(outer(r1_t[i, ], r0_t[i, ]))}))
+  r1r0_source <- colMeans((omega*t(sapply(seq_len(nrow(S1new)), function(i)
+  {as.vector(outer((S1new-r1_pred)[i,], r0_pred[i,]))})))[Anew == 1,,drop = FALSE]) + 
+    colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i) 
+    {as.vector(outer(r1_pred[i,], (S0new-r0_pred)[i,]))})))[Anew == 0,,drop = FALSE])
   
-  ab1_target <- alpha_t*b1_t
-  ab1_source <- (alpha_k*omega*(Y1new^2-b1_pred))
-  ab0_target <- (1/alpha_t)*b0_t
-  ab0_source <- ((1/alpha_k)*omega*(Y0new^2-b0_pred))
+  # conditional debiased - error terms:
+  ab0_e_target <- (1/alpha_t)*b0_t_e
+  ab0_e_source <- (1/alpha_k)*omega*((Y0new-m0_pred)^2-b0_pred_e)
+  ab1_e_target <- alpha_t*b1_t_e
+  ab1_e_source <- alpha_k*omega*((Y1new-m1_pred)^2-b1_pred_e)
   
-  am1sq_target <- alpha_t*m1_t^2
-  am1sq_source <- (alpha_k*omega*(Y1new-m1_pred)*m1_pred)
-  am0sq_target <- (1/alpha_t)*m0_t^2
-  am0sq_source <- ((1/alpha_k)*omega*(Y0new-m0_pred)*m0_pred)
+  ac0_e_target <- as.vector(1/alpha_t)*c0_t_e
+  ac0_e_source <- as.vector(1/alpha_k)*omega*((S0new-r0_pred)*as.vector(Y0new-m0_pred)-c0_pred_e)
+  ac1_e_target <- as.vector(alpha_t)*c1_t_e
+  ac1_e_source <- as.vector(alpha_k)*omega*((S1new-r1_pred)*as.vector(Y1new-m1_pred)-c1_pred_e)
   
+  ad0_e_target <- as.vector(1/alpha_t)*d0_t_e
+  ad0_e_source <- as.vector(1/alpha_k)*omega*(t(apply(S0new-r0_pred, 1, function(v) as.vector(outer(v,v)))) - d0_pred_e)
+  ad1_e_target <- as.vector(alpha_t)*d1_t_e
+  ad1_e_source <- as.vector(alpha_k)*omega*(t(apply(S1new-r1_pred, 1, function(v) as.vector(outer(v,v)))) - d1_pred_e)
+
   # V:
-  V <- B1 - 2*C1 %*% beta_opt +  t(D1 %*% beta_opt) %*% beta_opt - M1^2 + 2*M1*t(R1) %*% beta_opt - (t(R1) %*% beta_opt)^2 +
+  V <- # uncontional:
+    B1 - 2*C1 %*% beta_opt +  t(D1 %*% beta_opt) %*% beta_opt - M1^2 + 2*M1*t(R1) %*% beta_opt - (t(R1) %*% beta_opt)^2 +
     B0 - 2*C0 %*% beta_opt +  t(D0 %*% beta_opt) %*% beta_opt - M0^2 + 2*M0*t(R0) %*% beta_opt - (t(R0) %*% beta_opt)^2 +
     2*M1*M0 - 2*M1*t(R0) %*% beta_opt - 2*M0*t(R1) %*% beta_opt + 2*(R1 %*% beta_opt)*(R0 %*% beta_opt) +
     #------------------------------------------------- conditional -------------------------------------------------#
-    (-2)*( # m1m0 - m1r0 - m0r1(beta) + (beta)r1r0(beta)
+    (-2)*(
       mean(m1m0_target) + m1m0_source - 
         (colMeans(m1r0_target) + m1r0_source) %*% beta_opt -
         (colMeans(m0r1_target) + m0r1_source) %*% beta_opt +
@@ -124,46 +116,25 @@ Vab = function(NuisanceFit, TargetFit) {
         ) %*% beta_opt) %*% beta_opt
     ) +
     
-    (###### A=1
-      # ab1
-      mean(ab1_target) + mean(ab1_source[Anew == 1,,drop = FALSE]) +
-        # -2ac1
-        (-2)*(colMeans(ac1_target) + colMeans(ac1_source[Anew == 1,,drop = FALSE])) %*% beta_opt +
-        # ad1
-        t(matrix(colMeans(ad1_target) + colMeans(ad1_source[Anew == 1,,drop = FALSE]),
+    (# A=1
+      # ab1_e
+      mean(ab1_e_target) + mean(ab1_e_source[Anew == 1,,drop = FALSE]) +
+        # -2ac1_e
+        (-2)*(colMeans(ac1_e_target) + colMeans(ac1_e_source[Anew == 1,,drop = FALSE])) %*% beta_opt +
+        # ad1_e
+        t(matrix(colMeans(ad1_e_target) + colMeans(ad1_e_source[Anew == 1,,drop = FALSE]),
                  nrow = dims, ncol = dims
-        ) %*% beta_opt) %*% beta_opt +
-        # -am1sq
-        (-1)*(mean(am1sq_target) + 2*mean(am1sq_source[Anew == 1,,drop = FALSE])) +
-        # 2am1r1
-        2*(colMeans(am1r1_target) + colMeans(am1r1_source[Anew == 1,,drop = FALSE])) %*% beta_opt +
-        # -ar1r1
-        (-1)*(
-          t(matrix(colMeans(ar1sq_target) + colMeans(ar1sq_source[Anew == 1,,drop = FALSE]),
-                   nrow = dims, ncol = dims
-          ) %*% beta_opt) %*% beta_opt
-        )
-    )+
-    
-    (###### A=0
-      # ab0
-      mean(ab0_target) + mean(ab0_source[Anew == 0,,drop = FALSE]) +
-        # -2ac0
-        (-2)*(colMeans(ac0_target) + colMeans(ac0_source[Anew == 0,,drop = FALSE])) %*% beta_opt +
-        # ad0
-        t(matrix(colMeans(ad0_target) + colMeans(ad0_source[Anew == 0,,drop = FALSE]),
+        ) %*% beta_opt) %*% beta_opt
+    ) +
+    (# A=0
+      # ab0_e
+      mean(ab0_e_target) + mean(ab0_e_source[Anew == 0,,drop = FALSE]) +
+        # -2ac0_e
+        (-2)*(colMeans(ac0_e_target) + colMeans(ac0_e_source[Anew == 0,,drop = FALSE])) %*% beta_opt +
+        # ad0_e
+        t(matrix(colMeans(ad0_e_target) + colMeans(ad0_e_source[Anew == 0,,drop = FALSE]),
                  nrow = dims, ncol = dims
-        ) %*% beta_opt) %*% beta_opt +
-        # -am0sq
-        (-1)*(mean(am0sq_target) + 2*mean(am0sq_source[Anew == 0,,drop = FALSE])) +
-        # 2am0r0
-        2*(colMeans(am0r0_target) + colMeans(am0r0_source[Anew == 0,,drop = FALSE])) %*% beta_opt +
-        # -ar0r0
-        (-1)*(
-          t(matrix(colMeans(ar0sq_target) + colMeans(ar0sq_source[Anew == 0,,drop = FALSE]),
-                   nrow = dims, ncol = dims
-          ) %*% beta_opt) %*% beta_opt
-        )
+        ) %*% beta_opt) %*% beta_opt 
     )
   
   V
