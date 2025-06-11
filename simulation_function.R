@@ -63,9 +63,9 @@ sim_function <- function(n, K, givenestimator, NBoot) {
     
     # true tau:
   
-    tau = iteration(NuisanceFit_folds, TargetFit_folds)$tau
-    beta_opt = iteration(NuisanceFit_folds, TargetFit_folds)$beta_opt
-    gamma = iteration(NuisanceFit_folds, TargetFit_folds)$gamma
+    tau = iteration_V(NuisanceFit_folds, TargetFit_folds)$tau
+    beta_opt = iteration_V(NuisanceFit_folds, TargetFit_folds)$beta_opt
+    gamma = iteration_V(NuisanceFit_folds, TargetFit_folds)$gamma
     
     message(sprintf("[%s]  true_tau obtained — start bootstrapping",
                     format(Sys.time(), "%m‑%d %H:%M")))
@@ -79,7 +79,7 @@ sim_function <- function(n, K, givenestimator, NBoot) {
       }
       
       tau_boot[i] <- tryCatch( # store as NA if errors occur (doesn't converge/haissen)
-        iteration(NuisanceBoot_folds[[i]], TargetBoot_folds[[i]])$tau,
+        iteration_V(NuisanceBoot_folds[[i]], TargetBoot_folds[[i]])$tau,
         error = function(e) NA_real_ 
       )
       

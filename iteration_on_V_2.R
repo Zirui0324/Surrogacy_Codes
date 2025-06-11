@@ -1,5 +1,6 @@
 
-# does not incorporate gamma convergence, V iterates till Inf sometimes. Use iteration_on_V_2.R instead
+# incorporating gamma convergence in before each V
+# V generally converges within 3 steps (tol = 1e-5)
 
 iteration_V <- function(NuisanceFit_folds, TargetFit_folds) {
   
@@ -7,8 +8,6 @@ iteration_V <- function(NuisanceFit_folds, TargetFit_folds) {
   P_hat_folds <- array(NA, dim = c(dimS, dimS, K))
   Q_hat_folds <- matrix(NA, nrow=dimS, ncol=K)
   V           <- numeric(K)
-  ha_folds    <- array(NA, dim = c(dimX+1, dimX+1, K))
-  xi_folds    <- matrix(NA, nrow=dimX+1, ncol=K)
   tau_numr    <- numeric(K)
   tau_denom   <- numeric(K)
   
@@ -28,46 +27,43 @@ iteration_V <- function(NuisanceFit_folds, TargetFit_folds) {
     avg_P    <- apply(P_hat_folds, c(1, 2), mean, na.rm = TRUE)
     avg_Q    <- rowMeans(Q_hat_folds, na.rm = TRUE)
     beta_opt <- solve(avg_P) %*% avg_Q
-    #print(beta_opt) #debug
+    #print(beta_opt) # debug
+    
+    # Gamma iteration:
+    gamma_new <- iteration_gamma(NuisanceFit_folds, TargetFit_folds, beta_opt, gamma)
     
     # V, ha, xi:
     for (j in 1:K){
-      V[j] <- Vab(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)
-      ha_folds[,,j] <- new_gamma(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)$ha
-      xi_folds[,j]  <- new_gamma(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)$xi
+      V[j] <- Vab(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma_new, beta_opt)
     }
-    
-    # add gamma iteration here
-    
-    avg_V     <- mean(V) # evaluate the convergence of avg_V
-    avg_ha    <- apply(ha_folds, c(1, 2), mean, na.rm = TRUE)
-    avg_xi    <- rowMeans(xi_folds, na.rm = TRUE)
-    gamma_new <- gamma - step_size*(solve(avg_ha) %*% avg_xi)
+
+    avg_V <- mean(V) # then evaluate the convergence of avg_V
+    delta_V <- abs(avg_V - prev_avg_V)
     
     # ░░░░░░░░░░░░░░░░░░░░░░░░░ display block: ΔV, γ, β ░░░░░░░░░░░░░░░░░░░░░░░░░░
-    cat(sprintf("iter %d : avg_V = %.5f  ΔV = %.5f\n",
-                iter, avg_V, avg_V - prev_avg_V))
-    
-    delta_V <- abs(avg_V - prev_avg_V)              # compute once
-    cat(sprintf(
-      "\niter %3d | |ΔV| = %.5f\n", iter, delta_V))
-    
-    cat("gamma")
-    print(round(gamma, 6))                              # keeps 4×1 layout
-    
-    cat("beta")
-    print(round(beta_opt, 6))                              # keeps 2×1 layout
-    cat("----------------------------------------------------------------\n")
+    #cat(sprintf("iter %d : avg_V = %.5f  ΔV = %.5f\n",
+    #            iter, avg_V, avg_V - prev_avg_V))
+    #
+    #cat(sprintf(
+    #  "\niter %3d | |ΔV| = %.5f\n", iter, delta_V))
+    #
+    #cat("γ")
+    #print(round(gamma_new, 6))                              # keeps 4×1 layout
+    #
+    #cat("β")
+    #print(round(beta_opt, 6))                              # keeps 2×1 layout
+    #cat("----------------------------------------------------------------\n")
     # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
     
     if (abs(avg_V - prev_avg_V) < tol) {
       #message("Converged!")
+      gamma <- gamma_new
       break
     }
     
     ## update for next iteration
     prev_avg_V <- avg_V
-    gamma      <- gamma_new
+    
   }
   
   for (j in 1:K){
