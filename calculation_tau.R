@@ -1,7 +1,13 @@
 Tau <- function(NuisanceFit, TargetFit, beta_opt) {
   
+  # mean only considering meaningful values:
   Mean <- function(x) {
     mean(x[is.finite(x)])
+  }
+  
+  # exclude negative sqrt and non-positive denominators:
+  Sqrt <- function(x, y) {
+    ifelse(x >= 0 & y > 0, sqrt(x/y), 0)
   }
   
   dims <- ncol(TargetFit$r0_t)
@@ -98,13 +104,13 @@ Tau <- function(NuisanceFit, TargetFit, beta_opt) {
     colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i) 
     {as.vector(outer(r1_pred[i,], (S0new-r0_pred)[i,]))})))[Anew == 0,,drop = FALSE])
       
-  var_e_target <- sqrt(var_1_t*var_0_t)
-  var_e_source_0 <- omega*sqrt(var_1/var_0)*((Y0new - S0new %*% beta_opt - m0_pred + r0_pred %*% beta_opt)^2 - var_0)
-  var_e_source_1 <- omega*sqrt(var_0/var_1)*((Y1new - S1new %*% beta_opt - m1_pred + r1_pred %*% beta_opt)^2 - var_1)
+  var_e_target <- Sqrt(var_1_t*var_0_t, 1)
+  var_e_source_0 <- omega*Sqrt(var_1,var_0)*((Y0new - S0new %*% beta_opt - m0_pred + r0_pred %*% beta_opt)^2 - var_0)
+  var_e_source_1 <- omega*Sqrt(var_0,var_1)*((Y1new - S1new %*% beta_opt - m1_pred + r1_pred %*% beta_opt)^2 - var_1)
   
-  var_target <- sqrt(b1_t_e)*sqrt(b0_t_e)
-  var_source_0 <- omega*sqrt(b1_pred_e/b0_pred_e)*((Y0new-m0_pred)^2 - b0_pred_e)
-  var_source_1 <- omega*sqrt(b0_pred_e/b1_pred_e)*((Y1new-m1_pred)^2 - b1_pred_e)
+  var_target <- Sqrt(b1_t_e, 1)*Sqrt(b0_t_e, 1)
+  var_source_0 <- omega*Sqrt(b1_pred_e,b0_pred_e)*((Y0new-m0_pred)^2 - b0_pred_e)
+  var_source_1 <- omega*Sqrt(b0_pred_e,b1_pred_e)*((Y1new-m1_pred)^2 - b1_pred_e)
   
   # CALCULATION:
   numr <- B1 - 2*C1 %*% beta_opt +  t(D1 %*% beta_opt) %*% beta_opt - M1^2 + 2*M1*t(R1) %*% beta_opt - (t(R1) %*% beta_opt)^2 +

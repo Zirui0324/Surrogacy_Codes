@@ -5,6 +5,9 @@ resample_data <- function(NuisanceFit, TargetFit) {
   n_trg  <- length(TargetFit$m0_t) 
   
   # draw indices with replacement
+  h <- n_src/2
+  idx_src <- c(sample(h, h,TRUE), sample((h+1):n_src, n_src-h, TRUE) )
+  
   idx_src  <- sample(seq_len(n_src),  n_src,  replace=TRUE)
   idx_trg <- sample(seq_len(n_trg), n_trg, replace=TRUE)
   
