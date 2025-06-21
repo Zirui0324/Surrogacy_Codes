@@ -22,6 +22,7 @@ b = 0.5 # var Y
 rho_y  <- 0       # Corr(Y0 , Y1)
 rho_s1 <- 0       # Corr(S0_1 , S1_1)
 rho_s2 <- 0       # Corr(S0_2 , S1_2)
+z=1
 
 # -------------------------------------------- Simulation -------------------------------------------- #
 output <- list()
@@ -85,7 +86,7 @@ for (n in sample_sizes) {
 }
 
 
-# -------------------------------------------- Output Organization -------------------------------------------- #
+# --------------------------------------- Output Organization --------------------------------------- #
 
 output_wrap <- function(df, 
                         tau_conser, beta1_conser, beta2_conser,

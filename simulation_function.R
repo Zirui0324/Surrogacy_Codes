@@ -3,7 +3,6 @@ sim_function <- function(n, K, givenestimator, NBoot) {
     
     DP <- GD(n, a, b, rho_y, rho_s1, rho_s2)
     Index <- Split2(K, n) # sample split
-    dimS <- ncol(DP$S0) # dim(theta) = dim(S)
     
     NuisanceFit_folds <- vector("list", K)
     TargetFit_folds   <- vector("list", K)
@@ -12,10 +11,7 @@ sim_function <- function(n, K, givenestimator, NBoot) {
     TargetBoot_folds <- lapply(seq_len(NBoot), function(...) vector("list", K))
     tau_boot = numeric(NBoot)
     
-    dimS = 2
-    dimX = 3
-    
-    ###----------------------------------------- Nuisance Estimate -----------------------------------------###
+    #------------------------------------- Nuisance Estimate -------------------------------------#
     for (j in 1:K){
       
       idNj = (Index!=j) # for training, (1-1/K)*n dp
@@ -57,7 +53,7 @@ sim_function <- function(n, K, givenestimator, NBoot) {
       
     }
     
-    ###----------------------------------------- Iteration -----------------------------------------###
+    #----------------------------------------- Iteration -----------------------------------------#
     
     # true tau:
     

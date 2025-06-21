@@ -32,63 +32,64 @@ estimate <- function(In, Out, Target, givenestimator, NBoot) {
   ######################## omega estimate ########################
   Xc <- data.frame(rbind(cbind(X, source = 0), cbind(Xt, source = 1))) # pT = p1
   
-  #### 1. glm:
-  Xc$source <- as.factor(Xc$source)
-  p <- glm(source ~ ., data = Xc, family = binomial) # logistic regression
-  p1 <- predict(p, newdata = data.frame(Xnew), type = "response")
-  omega <- (p1/(1-p1))*(1-1/K)
-  
-  fit_model <- function(outcome, predictor) {
-    train(outcome ~ ., data = data.frame(outcome, predictor),
-          method = 'glm',
-          trControl = trainControl(method = "cv", number = 5, verboseIter = FALSE)
-    )
-  }
-  
-  ##### 2. machine learning:
-  #Xc$source <- factor(Xc$source, 
-  #                  levels = c(0,1), 
-  #                  labels = c("Class0", "Class1"))
+  ### 1. glm:
+  #Xc$source <- as.factor(Xc$source)
+  #p <- glm(source ~ ., data = Xc, family = binomial) # logistic regression
+  #p1 <- predict(p, newdata = data.frame(Xnew), type = "response")
+  #omega <- (p1/(1-p1))*(1-1/K)
+  ##omega <- rep(1, length(omega)) # for true tau calculation #*#
   #
-  #fitControl_p <- trainControl( # for p
-  #    method = "cv",
-  #    number = 5,
-  #    verboseIter=FALSE,
-  #    classProbs  = TRUE) # for classification
-  #
-  #fitControl <- trainControl( # for nuisance models
-  #    method = "cv",
-  #    number = 5,
-  #    verboseIter=FALSE)
-  #
-  ## nuisance:
   #fit_model <- function(outcome, predictor) {
   #  train(outcome ~ ., data = data.frame(outcome, predictor),
-  #        method = givenestimator,
-  #        trControl = fitControl,
-  #        verbose = FALSE
-  #  )}
-  #
-  ## p & omega, for different algrthms:
-  #if(givenestimator %in% c('svmLinear', 'svmLinear2')){
-  #  
-  #  p <- train(source ~., data = Xc, 
-  #             method = givenestimator, 
-  #             trControl =fitControl_p,
-  #             verbose = FALSE,
-  #             probability = TRUE) # unique to svmLinear2
-  #  
-  #}else{
-  #  
-  #  p <- train(source ~., data = Xc, 
-  #             method = givenestimator, 
-  #             trControl =fitControl_p,
-  #             verbose = FALSE) # c('gbm','rf','nnet')
-  #  
+  #        method = 'glm',
+  #        trControl = trainControl(method = "cv", number = 5, verboseIter = FALSE)
+  #  )
   #}
-  #
-  #p1 <- predict(p, newdata = data.frame(Xnew), type = "prob")$Class1
-  #omega <- (p1/(1-p1))*(1-1/K)
+  
+  ### 2. machine learning:
+  Xc$source <- factor(Xc$source, 
+                    levels = c(0,1), 
+                    labels = c("Class0", "Class1"))
+  
+  fitControl_p <- trainControl( # for p
+      method = "cv",
+      number = 5,
+      verboseIter=FALSE,
+      classProbs  = TRUE) # for classification
+  
+  fitControl <- trainControl( # for nuisance models
+      method = "cv",
+      number = 5,
+      verboseIter=FALSE)
+  
+  # nuisance:
+  fit_model <- function(outcome, predictor) {
+    train(outcome ~ ., data = data.frame(outcome, predictor),
+          method = givenestimator,
+          trControl = fitControl,
+          verbose = FALSE
+    )}
+  
+  # p & omega, for different algrthms:
+  if(givenestimator %in% c('svmLinear', 'svmLinear2')){
+    
+    p <- train(source ~., data = Xc, 
+               method = givenestimator, 
+               trControl =fitControl_p,
+               verbose = FALSE,
+               probability = TRUE) # unique to svmLinear2
+    
+  }else{
+    
+    p <- train(source ~., data = Xc, 
+               method = givenestimator, 
+               trControl =fitControl_p,
+               verbose = FALSE) # c('gbm','rf','nnet')
+    
+  }
+  
+  p1 <- predict(p, newdata = data.frame(Xnew), type = "prob")$Class1
+  omega <- (p1/(1-p1))*(1-1/K)
   
   #initialize model-storing list for high-d S (p*1), c (p*1), and d (p*p)
   dims <- ncol(S0)
@@ -240,32 +241,32 @@ estimate <- function(In, Out, Target, givenestimator, NBoot) {
   
   # Prepare data list with nuisance estimators for beta & V calculation
   NuisanceFit <- list(
-    Xnew=Xnew,
-    Anew=Anew,
-    omega=omega,
-    Y0new=Y0new, Y1new=Y1new, S0new=S0new, S1new=S1new, 
-    m0_pred=m0_pred, m1_pred=m1_pred,
-    r0_pred=r0_pred, r1_pred=r1_pred,
-    b0_pred=b0_pred, b1_pred=b1_pred,
-    c0_pred=c0_pred, c1_pred=c1_pred,
-    d0_pred=d0_pred, d1_pred=d1_pred,
+    Xnew = Xnew,
+    Anew = Anew,
+    omega = omega,
+    Y0new = Y0new, Y1new = Y1new, S0new = S0new, S1new = S1new, 
+    m0_pred = m0_pred, m1_pred = m1_pred,
+    r0_pred = r0_pred, r1_pred = r1_pred,
+    b0_pred = b0_pred, b1_pred = b1_pred,
+    c0_pred = c0_pred, c1_pred = c1_pred,
+    d0_pred = d0_pred, d1_pred = d1_pred,
     # error terms:
-    b0_pred_e=b0_pred_e,b1_pred_e=b1_pred_e,
-    c0_pred_e=c0_pred_e,c1_pred_e=c1_pred_e,
-    d0_pred_e=d0_pred_e,d1_pred_e=d1_pred_e
+    b0_pred_e = b0_pred_e,b1_pred_e = b1_pred_e,
+    c0_pred_e = c0_pred_e,c1_pred_e = c1_pred_e,
+    d0_pred_e = d0_pred_e,d1_pred_e = d1_pred_e
   )
   
   TargetFit <- list(
     Xt = Xt,
-    m0_t=m0_t, m1_t=m1_t, 
-    r0_t=r0_t, r1_t=r1_t,
-    b0_t=b0_t, b1_t=b1_t,
-    c0_t=c0_t, c1_t=c1_t,
-    d0_t=d0_t, d1_t=d1_t,
+    m0_t = m0_t, m1_t = m1_t, 
+    r0_t = r0_t, r1_t = r1_t,
+    b0_t = b0_t, b1_t = b1_t,
+    c0_t = c0_t, c1_t = c1_t,
+    d0_t = d0_t, d1_t = d1_t,
     # error terms:
-    b0_t_e=b0_t_e, b1_t_e=b1_t_e,
-    c0_t_e=c0_t_e, c1_t_e=c1_t_e,
-    d0_t_e=d0_t_e, d1_t_e=d1_t_e
+    b0_t_e = b0_t_e, b1_t_e = b1_t_e,
+    c0_t_e = c0_t_e, c1_t_e = c1_t_e,
+    d0_t_e = d0_t_e, d1_t_e = d1_t_e
   )
 
   

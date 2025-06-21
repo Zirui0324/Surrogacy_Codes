@@ -40,13 +40,13 @@ EY1 <- function(X, S1) {
   EY1
 }
 
-# error generator
-err <- function(n, d, var) { # n dp, d dimension, variance
-  err_matrix <- matrix(rnorm(n * d, mean = 0, sd = sqrt(var)), nrow = n, ncol = d)
-  return(err_matrix)
-}
+## error generator
+#err <- function(n, d, var) { # n dp, d dimension, variance
+#  err_matrix <- matrix(rnorm(n * d, mean = 0, sd = sqrt(var)), nrow = n, ncol = d)
+#  return(err_matrix)
+#}
 
-# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Data generate function ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Data generate function ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 # GD - generating data function
 DP <- list()
 GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
@@ -64,7 +64,7 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   
   # ░░░░░░░░░░░░░░░░░░░░░░░ error correlation ░░░░░░░░░░░░░░░░░░░░░░░░░
   
-  ## ---- Y-errors: 2×2 block -----------------------------------------
+  ## Y-errors: 2×2 block
   sigma_y <- matrix(c(
     b, rho_y*sqrt(b*b),
     rho_y*sqrt(b*b), b),
@@ -74,7 +74,7 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   e_Y0    <- errs_Y[, 1]
   e_Y1    <- errs_Y[, 2]
   
-  ## ---- S(·)_1 errors: 2×2 block ------------------------------------
+  ## S(·)_1 errors: 2×2 block
   sigma_s1 <- matrix(c(
     a, rho_s1*sqrt(a*a),
     rho_s1*sqrt(a*a),  a),
@@ -84,7 +84,7 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   e_S0_1  <- errs_S1[, 1]
   e_S1_1  <- errs_S1[, 2]
   
-  ## ---- S(·)_2 errors: 2×2 block ------------------------------------
+  ## S(·)_2 errors: 2×2 block
   sigma_s2 <- matrix(c(
     a, rho_s2*sqrt(a*a),
     rho_s2*sqrt(a*a),  a),
@@ -94,7 +94,7 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   e_S0_2  <- errs_S2[, 1]
   e_S1_2  <- errs_S2[, 2]
   
-  ## ---- assemble matrices used later --------------------------------
+  ## assemble matrices used later
   e_S0 <- cbind(e_S0_1, e_S0_2) 
   e_S1 <- cbind(e_S1_1, e_S1_2) 
   
@@ -104,7 +104,7 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   #e_Y0 <- err(n, 1, 0.5) # 0.5
   #e_Y1 <- err(n, 1, 0.5) # 0.5
   
-  # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   #S: n x 3 matrix
   S0 <- ES0(X) + e_S0
   S1 <- ES1(X) + e_S1
@@ -115,9 +115,6 @@ GD <- function(n, a, b, rho_y, rho_s1, rho_s2){
   #A: n x 1 matrix
   A <- c(rep(0, n/2), rep(1, n/2)) # first half: A=0, second half: A=1 # for better sample split
   
-  
-  # X <- as.data.frame(X)
-  # Xt <- as.data.frame(Xt)
   DP <- list('A'=A, 'X'=X, 'Xt'=Xt, 'Y0'=Y0,'Y1'=Y1, 'S0'=S0, 'S1'=S1)
   return(DP)
 }

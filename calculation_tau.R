@@ -6,10 +6,6 @@ Tau <- function(NuisanceFit, TargetFit, beta_opt) {
   }
   
   # exclude negative sqrt and non-positive denominators:
-  #Sqrt <- function(x, y) {
-  #  ifelse(x >= 0 & y > 0, sqrt(x/y), 0)
-  #}
-  
   Sqrt <- function(x, y) {
     out <- numeric(length(x))              # default 0
     ok  <- x >= 0 & y > 0                  # where the ratio is valid

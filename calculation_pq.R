@@ -12,7 +12,7 @@ calculation_pq <- function(NuisanceFit, TargetFit, gamma) {
   m1_pred=NuisanceFit$m1_pred
   r0_pred=NuisanceFit$r0_pred
   r1_pred=NuisanceFit$r1_pred
-  #b0_pred=NuisanceFit$b0_pred
+  #b0_pred=NuisanceFit$b0_pred # these are unused
   #b1_pred=NuisanceFit$b1_pred
   c0_pred=NuisanceFit$c0_pred
   c1_pred=NuisanceFit$c1_pred
@@ -148,7 +148,7 @@ calculation_pq <- function(NuisanceFit, TargetFit, gamma) {
   
   Q <- t(t(QT))
   
-  # solve(P) %*% Q
+  # solve(P) %*% Q = beta
   
   # Return them
   list(P = P, Q = Q)
