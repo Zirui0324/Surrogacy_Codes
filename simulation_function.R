@@ -1,7 +1,7 @@
 
 sim_function <- function(n, K, givenestimator, NBoot) {
     
-    DP <- GD(n) 
+    DP <- GD(n, a, b, rho_y, rho_s1, rho_s2)
     Index <- Split2(K, n) # sample split
     dimS <- ncol(DP$S0) # dim(theta) = dim(S)
     
@@ -47,8 +47,6 @@ sim_function <- function(n, K, givenestimator, NBoot) {
           list(
             NuisanceFit = list(),
             TargetFit = list()
-            # se_theta= rep(NaN, dimS),
-            # se_tau  = NaN
           )
         }
       )
@@ -62,10 +60,14 @@ sim_function <- function(n, K, givenestimator, NBoot) {
     ###----------------------------------------- Iteration -----------------------------------------###
     
     # true tau:
+    
+    iteration_result = iteration_V(NuisanceFit_folds, TargetFit_folds)
   
-    tau = iteration_V(NuisanceFit_folds, TargetFit_folds)$tau
-    beta_opt = iteration_V(NuisanceFit_folds, TargetFit_folds)$beta_opt
-    gamma = iteration_V(NuisanceFit_folds, TargetFit_folds)$gamma
+    tau = iteration_result$tau
+    beta_opt = iteration_result$beta_opt
+    gamma = iteration_result$gamma
+    hit_gamma_max = iteration_result$hit_gamma_max
+    hit_V_max = iteration_result$hit_V_max
     
     message(sprintf("[%s]  true_tau obtained — start bootstrapping",
                     format(Sys.time(), "%m‑%d %H:%M")))
@@ -93,6 +95,8 @@ sim_function <- function(n, K, givenestimator, NBoot) {
       tau = tau,
       se_tau = se_tau,
       beta = beta_opt,
-      gamma = gamma
+      gamma = gamma,
+      hit_gamma_max = hit_gamma_max,
+      hit_V_max = hit_V_max
     ))
 }

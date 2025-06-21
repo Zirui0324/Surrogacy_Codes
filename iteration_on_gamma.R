@@ -3,10 +3,12 @@
 
 iteration_gamma <- function(NuisanceFit_folds, TargetFit_folds, beta_opt, gamma){
   
+  hit_max_gamma <- FALSE # indicator variable, indicates whether max_iter_gamma is reached before stopping
+  
   ha_folds    <- array(NA, dim = c(dimX+1, dimX+1, K))
   xi_folds    <- matrix(NA, nrow=dimX+1, ncol=K)
   
-  for (iter in 1:max_iter) {
+  for (iter in 1:max_iter_gamma) {
     
     for (j in 1:K){
       ha_folds[,,j] <- new_gamma(NuisanceFit_folds[[j]], TargetFit_folds[[j]], gamma, beta_opt)$ha
@@ -33,11 +35,13 @@ iteration_gamma <- function(NuisanceFit_folds, TargetFit_folds, beta_opt, gamma)
       #message("Converged!")
       break
     }
-    
     gamma <- gamma_new
   }
   
-  gamma
+  if (iter == max_iter_gamma) 
+    hit_max_gamma <- TRUE
+  
+  list(gamma = gamma, hit_max_gamma = hit_max_gamma)
   
 }
 

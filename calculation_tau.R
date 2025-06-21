@@ -6,8 +6,15 @@ Tau <- function(NuisanceFit, TargetFit, beta_opt) {
   }
   
   # exclude negative sqrt and non-positive denominators:
+  #Sqrt <- function(x, y) {
+  #  ifelse(x >= 0 & y > 0, sqrt(x/y), 0)
+  #}
+  
   Sqrt <- function(x, y) {
-    ifelse(x >= 0 & y > 0, sqrt(x/y), 0)
+    out <- numeric(length(x))              # default 0
+    ok  <- x >= 0 & y > 0                  # where the ratio is valid
+    out[ok] <- sqrt(x[ok] / y[ok])         # compute only there
+    out
   }
   
   dims <- ncol(TargetFit$r0_t)
@@ -104,7 +111,7 @@ Tau <- function(NuisanceFit, TargetFit, beta_opt) {
     colMeans((omega*t(sapply(seq_len(nrow(S0new)), function(i) 
     {as.vector(outer(r1_pred[i,], (S0new-r0_pred)[i,]))})))[Anew == 0,,drop = FALSE])
       
-  var_e_target <- Sqrt(var_1_t*var_0_t, 1)
+  var_e_target <- Sqrt(var_1_t, 1)*Sqrt(var_0_t, 1)
   var_e_source_0 <- omega*Sqrt(var_1,var_0)*((Y0new - S0new %*% beta_opt - m0_pred + r0_pred %*% beta_opt)^2 - var_0)
   var_e_source_1 <- omega*Sqrt(var_0,var_1)*((Y1new - S1new %*% beta_opt - m1_pred + r1_pred %*% beta_opt)^2 - var_1)
   
